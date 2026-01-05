@@ -4,6 +4,8 @@ const TYPE_ICONS = {
   rock: "🪨",
   paper: "📜",
   scissors: "✂️",
+  lizard: "🦎",
+  spock: "🖖",
 };
 
 const RESULT_COPY = {
@@ -238,14 +240,14 @@ export default function App() {
                 key={item.id}
                 className={`inventory-item ${animatingMove?.id === item.id ? "active" : ""}`}
                 onClick={() => handleMove(item)}
-                disabled={!gameState.awaiting_player || gameState.game_over}
+                disabled={!gameState.awaiting_player || gameState.game_over || item.uses_left <= 0}
               >
                 <div className="item-name">{item.name}</div>
                 <div className="item-types">
                   <span>{TYPE_ICONS[item.primary_type]}</span>
                   <span>{TYPE_ICONS[item.secondary_type]}</span>
                 </div>
-                {!item.is_base && <div className="item-usage">Single use</div>}
+                <div className="item-usage">{item.uses_left} uses left</div>
               </button>
             ))}
           </div>

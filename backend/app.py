@@ -22,21 +22,35 @@ BASE_ITEMS = [
         "name": "Rock",
         "primary_type": "rock",
         "secondary_type": "rock",
-        "is_base": True,
+        "uses_left": 3,
     },
     {
         "id": "base-paper",
         "name": "Paper",
         "primary_type": "paper",
         "secondary_type": "paper",
-        "is_base": True,
+        "uses_left": 3,
     },
     {
         "id": "base-scissors",
         "name": "Scissors",
         "primary_type": "scissors",
         "secondary_type": "scissors",
-        "is_base": True,
+        "uses_left": 3,
+    },
+    {
+        "id": "base-lizard",
+        "name": "Lizard",
+        "primary_type": "lizard",
+        "secondary_type": "lizard",
+        "uses_left": 3,
+    },
+    {
+        "id": "base-spock",
+        "name": "Spock",
+        "primary_type": "spock",
+        "secondary_type": "spock",
+        "uses_left": 3,
     },
 ]
 
@@ -83,6 +97,7 @@ def load_objects() -> List[Dict[str, str]]:
                     "name": str(row[0]).strip(),
                     "primary_type": str(row[1]).strip().lower(),
                     "secondary_type": str(row[2]).strip().lower(),
+                    "uses_left": 1,
                 }
             )
         return objects
@@ -99,6 +114,7 @@ def load_objects() -> List[Dict[str, str]]:
                 "name": name,
                 "primary_type": primary_type.lower(),
                 "secondary_type": secondary_type.lower(),
+                "uses_left": 1,
             }
         )
     return objects
@@ -141,11 +157,13 @@ def compare_types(attacker: str, defender: str) -> str:
     if attacker == defender:
         return "tie"
     winning_pairs = {
-        "rock": "scissors",
-        "paper": "rock",
-        "scissors": "paper",
+        "rock": {"scissors", "lizard"},
+        "paper": {"rock", "spock"},
+        "scissors": {"paper", "lizard"},
+        "lizard": {"paper", "spock"},
+        "spock": {"rock", "scissors"},
     }
-    if winning_pairs[attacker] == defender:
+    if defender in winning_pairs[attacker]:
         return "win"
     return "loss"
 
@@ -171,34 +189,24 @@ def build_player_items() -> List[Dict[str, str]]:
     return [item.copy() for item in BASE_ITEMS]
 
 
-def has_item(state: GameState, item: Dict[str, str]) -> bool:
-    return any(
-        owned["name"].lower() == item["name"].lower()
-        and owned["primary_type"] == item["primary_type"]
-        and owned["secondary_type"] == item["secondary_type"]
-        for owned in state.player_items
-    )
-
-
 def award_loot(state: GameState) -> None:
     for item in state.cpu_choices:
-        if has_item(state, item):
-            continue
         state.player_items.append(
             {
                 "id": str(uuid.uuid4()),
                 "name": item["name"],
                 "primary_type": item["primary_type"],
                 "secondary_type": item["secondary_type"],
-                "is_base": False,
+                "uses_left": 1,
             }
         )
 
 
 def consume_item(state: GameState, item_id: str) -> None:
-    state.player_items = [
-        item for item in state.player_items if item["is_base"] or item["id"] != item_id
-    ]
+    for item in state.player_items:
+        if item["id"] == item_id and item["uses_left"] > 0:
+            item["uses_left"] -= 1
+            break
 
 
 @app.post("/api/game/start")
@@ -258,6 +266,8 @@ def take_turn():
     player_item = next((item for item in state.player_items if item["id"] == player_item_id), None)
     if player_item is None:
         return jsonify({"error": "Invalid player item"}), 400
+    if player_item["uses_left"] <= 0:
+        return jsonify({"error": "Item has no uses left"}), 400
 
     result = resolve_clash(player_item, state.last_cpu_choice)
 
@@ -268,8 +278,7 @@ def take_turn():
     state.level_up = False
     state.awaiting_player = False
 
-    if not player_item["is_base"]:
-        consume_item(state, player_item_id)
+    consume_item(state, player_item_id)
 
     if state.player_hp <= 0:
         state.player_hp = max(state.player_hp, 0)
