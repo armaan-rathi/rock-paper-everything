@@ -4,7 +4,7 @@ import uuid
 from dataclasses import asdict, dataclass
 from typing import Dict, List
 
-from flask import Flask, jsonify, request
+from flask import Flask, jsonify, request, send_from_directory
 from flask_cors import CORS
 
 try:
@@ -13,7 +13,9 @@ except ImportError:
     openpyxl = None
 
 
-DATA_PATH = os.getenv("OBJECTS_FILE", os.path.join(os.path.dirname(__file__), "data", "objects.csv"))
+ROOT_DIR = os.path.dirname(__file__)
+DATA_PATH = os.getenv("OBJECTS_FILE", os.path.join(ROOT_DIR, "data", "objects.csv"))
+DIST_DIR = os.path.abspath(os.path.join(ROOT_DIR, "..", "frontend", "dist"))
 BASE_ITEMS = [
     {
         "id": "base-rock",
@@ -57,7 +59,7 @@ class GameState:
     awaiting_player: bool
 
 
-app = Flask(__name__)
+app = Flask(__name__, static_folder=DIST_DIR, static_url_path="")
 CORS(app)
 
 _sessions: Dict[str, GameState] = {}
@@ -169,8 +171,19 @@ def build_player_items() -> List[Dict[str, str]]:
     return [item.copy() for item in BASE_ITEMS]
 
 
+def has_item(state: GameState, item: Dict[str, str]) -> bool:
+    return any(
+        owned["name"].lower() == item["name"].lower()
+        and owned["primary_type"] == item["primary_type"]
+        and owned["secondary_type"] == item["secondary_type"]
+        for owned in state.player_items
+    )
+
+
 def award_loot(state: GameState) -> None:
     for item in state.cpu_choices:
+        if has_item(state, item):
+            continue
         state.player_items.append(
             {
                 "id": str(uuid.uuid4()),
@@ -288,6 +301,16 @@ def take_turn():
         return jsonify({"state": asdict(next_state)})
 
     return jsonify({"state": asdict(state)})
+
+
+@app.route("/", defaults={"path": ""})
+@app.route("/<path:path>")
+def serve_frontend(path: str):
+    if path.startswith("api"):
+        return jsonify({"error": "Not found"}), 404
+    if path and os.path.exists(os.path.join(DIST_DIR, path)):
+        return send_from_directory(DIST_DIR, path)
+    return send_from_directory(DIST_DIR, "index.html")
 
 
 if __name__ == "__main__":

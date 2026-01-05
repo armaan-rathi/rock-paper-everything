@@ -26,6 +26,24 @@ npm run dev
 
 The frontend runs at `http://localhost:5173` and proxies API calls to the backend.
 
+## Production deployment (Render)
+
+This repo supports a single-service deployment where Flask serves the built React app.
+
+**Build command**
+
+```bash
+pip install -r backend/requirements.txt && cd frontend && npm ci && npm run build
+```
+
+**Start command**
+
+```bash
+gunicorn backend.app:app
+```
+
+Flask serves the Vite build output from `frontend/dist` and all API calls use the `/api` path.
+
 ## Data
 
 By default, the backend loads objects from `backend/data/objects.csv`. To use an Excel file, set:
@@ -34,4 +52,4 @@ By default, the backend loads objects from `backend/data/objects.csv`. To use an
 export OBJECTS_FILE=/path/to/objects.xlsx
 ```
 
-The file should contain a header row with `name,type`, and each row should map to `rock`, `paper`, or `scissors`.
+The file should contain a header row with `name,primary_type,secondary_type`, and each row should map to `rock`, `paper`, or `scissors`.
