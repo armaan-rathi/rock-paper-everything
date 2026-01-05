@@ -1,32 +1,31 @@
-name,type
-Granite Boulder,rock
-Obsidian Shard,rock
-Titanium Hammer,rock
-Meteor,rock
-Quartz Compass,rock
-Anvil,rock
-Basalt Crown,rock
-Ancient Scroll,paper
-Royal Decree,paper
-Silk Banner,paper
-Degree,paper
-Family Tree,paper
-Blueprint,paper
-Map Fragment,paper
-Glass Contract,paper
-Sage Manuscript,paper
-Crystal Shears,scissors
-Shadow Dagger,scissors
-Wind Cutter,scissors
-Fan,scissors
-Hedge Trimmer,scissors
-Falcon Talons,scissors
-Echoing Chisel,scissors
-Twin Sabers,scissors
-Obsidian Quill,paper
-Steel Petal,scissors
-Driftwood Totem,rock
-Clay Tablet,paper
-Moonlit Ledger,paper
-Storm Razor,scissors
-Granite Coin,rock
+name,primary_type,secondary_type
+Chair,rock,paper
+Plate,paper,rock
+Fan,scissors,rock
+Tree,paper,rock
+Book,paper,paper
+Glass,paper,scissors
+Phone,rock,scissors
+Mug,rock,paper
+Fork,scissors,rock
+Spoon,rock,paper
+Pillow,paper,rock
+Laptop,rock,scissors
+Mirror,rock,paper
+Wallet,paper,scissors
+Ladder,rock,scissors
+Newspaper,paper,paper
+Bottle,rock,scissors
+Umbrella,paper,scissors
+Camera,rock,scissors
+Keyboard,scissors,rock
+Scarf,paper,scissors
+Broom,scissors,rock
+Brush,scissors,paper
+Clock,rock,paper
+Balloon,paper,scissors
+Candle,rock,paper
+Helmet,rock,scissors
+Glove,paper,scissors
+Ticket,paper,paper
+Coin,rock,rock

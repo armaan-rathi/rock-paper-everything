@@ -133,20 +133,6 @@ body {
   box-shadow: 0 0 20px rgba(56, 189, 248, 0.2);
 }
 
-.tag {
-  background: rgba(56, 189, 248, 0.2);
-  padding: 4px 10px;
-  border-radius: 999px;
-  font-size: 0.75rem;
-  text-transform: uppercase;
-  letter-spacing: 0.08em;
-}
-
-.tag.muted {
-  background: rgba(148, 163, 184, 0.2);
-  color: #cbd5f5;
-}
-
 .cpu-play {
   margin-top: 16px;
   font-weight: 600;
@@ -248,9 +234,68 @@ body {
 
 .actions {
   display: flex;
-  flex-wrap: wrap;
+  flex-direction: column;
   gap: 16px;
-  justify-content: center;
+}
+
+.inventory {
+  background: rgba(15, 23, 42, 0.6);
+  border-radius: 20px;
+  padding: 20px;
+  border: 1px solid rgba(148, 163, 184, 0.2);
+}
+
+.inventory h3 {
+  margin-top: 0;
+}
+
+.inventory-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
+  gap: 12px;
+}
+
+.inventory-item {
+  background: rgba(30, 41, 59, 0.8);
+  color: #f8fafc;
+  padding: 12px;
+  border-radius: 14px;
+  border: 1px solid rgba(148, 163, 184, 0.2);
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  align-items: flex-start;
+  transition: transform 0.2s ease, border-color 0.2s ease, box-shadow 0.2s ease;
+}
+
+.inventory-item:hover {
+  transform: translateY(-3px);
+  border-color: #38bdf8;
+  box-shadow: 0 0 20px rgba(56, 189, 248, 0.2);
+}
+
+.inventory-item.active {
+  animation: shake 0.4s ease;
+}
+
+.inventory-item:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+.item-name {
+  font-weight: 600;
+}
+
+.item-types {
+  display: flex;
+  gap: 8px;
+  font-size: 1.4rem;
+}
+
+.item-usage {
+  font-size: 0.75rem;
+  color: #facc15;
 }
 
 button {
@@ -259,44 +304,12 @@ button {
   font-family: inherit;
 }
 
-.move {
-  background: rgba(30, 41, 59, 0.8);
-  color: #f8fafc;
-  padding: 14px 20px;
-  border-radius: 16px;
-  display: flex;
-  flex-direction: column;
-  gap: 6px;
-  align-items: center;
-  min-width: 120px;
-  border: 1px solid rgba(148, 163, 184, 0.2);
-  transition: transform 0.2s ease, border-color 0.2s ease, box-shadow 0.2s ease;
-}
-
-.move:hover {
-  transform: translateY(-4px);
-  border-color: #38bdf8;
-  box-shadow: 0 0 20px rgba(56, 189, 248, 0.2);
-}
-
-.move.active {
-  animation: shake 0.4s ease;
-}
-
-.move:disabled {
-  opacity: 0.5;
-  cursor: not-allowed;
-}
-
-.move-icon {
-  font-size: 1.8rem;
-}
-
 .primary,
 .secondary {
   padding: 12px 20px;
   border-radius: 999px;
   font-weight: 600;
+  align-self: center;
 }
 
 .primary {
@@ -382,9 +395,5 @@ button {
   .header {
     flex-direction: column;
     align-items: flex-start;
-  }
-
-  .actions {
-    flex-direction: column;
   }
 }

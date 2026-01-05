@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useState } from "react";
 
-const MOVE_ICONS = {
+const TYPE_ICONS = {
   rock: "🪨",
   paper: "📜",
   scissors: "✂️",
@@ -35,12 +35,14 @@ export default function App() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
   const [animatingMove, setAnimatingMove] = useState(null);
+  const [showLevelUp, setShowLevelUp] = useState(false);
 
   const resultMessage = useMemo(() => {
     if (!gameState?.last_result) {
-      return gameState?.awaiting_player
-        ? "CPU locked in. Choose your response."
-        : "CPU is weighing its options...";
+      if (gameState?.awaiting_player) {
+        return "CPU locked in. Choose your response.";
+      }
+      return "CPU is weighing its options...";
     }
     return RESULT_COPY[gameState.last_result];
   }, [gameState]);
@@ -83,16 +85,16 @@ export default function App() {
     }
   };
 
-  const handleMove = async (move) => {
+  const handleMove = async (item) => {
     if (!sessionId) {
       return;
     }
-    setAnimatingMove(move);
+    setAnimatingMove(item);
     try {
       const response = await fetch("/api/game/turn", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ session_id: sessionId, player_move: move }),
+        body: JSON.stringify({ session_id: sessionId, player_item_id: item.id }),
       });
       const data = await response.json();
       if (!response.ok) {
@@ -123,6 +125,15 @@ export default function App() {
     return undefined;
   }, [gameState?.awaiting_player, gameState?.level_up, gameState?.game_over]);
 
+  useEffect(() => {
+    if (!gameState?.level_up) {
+      return;
+    }
+    setShowLevelUp(true);
+    const timer = setTimeout(() => setShowLevelUp(false), 1300);
+    return () => clearTimeout(timer);
+  }, [gameState?.level_up]);
+
   if (loading) {
     return <div className="screen">Loading the arena...</div>;
   }
@@ -143,7 +154,7 @@ export default function App() {
     return null;
   }
 
-  const leftIcon = animatingMove || gameState.last_player_move;
+  const leftItem = animatingMove || gameState.last_player_item;
 
   return (
     <div className="app">
@@ -183,7 +194,6 @@ export default function App() {
                 }
               >
                 <span>{choice.name}</span>
-                <span className="tag muted">Classified</span>
               </div>
             ))}
           </div>
@@ -195,39 +205,51 @@ export default function App() {
         </div>
 
         <div className={`result-card ${gameState.last_result}`}>
-          {gameState.level_up && <div className="level-banner">LEVEL UP</div>}
+          {showLevelUp && <div className="level-banner">LEVEL UP</div>}
           <p className="result-label">{resultMessage}</p>
           {gameState.last_result && (
             <div className="result-icons">
               <span className={`icon ${animatingMove ? "pulse" : ""}`}>
-                {leftIcon ? MOVE_ICONS[leftIcon] : "❔"}
+                {leftItem ? TYPE_ICONS[leftItem.primary_type] : "❔"}
               </span>
               <span className="vs">vs</span>
               <span className="icon">
                 {gameState.last_cpu_choice
-                  ? MOVE_ICONS[gameState.last_cpu_choice.type]
+                  ? TYPE_ICONS[gameState.last_cpu_choice.primary_type]
                   : "❔"}
               </span>
             </div>
           )}
-          {gameState.game_over && (
+          {gameState.game_won && (
+            <div className="game-over">Victory! You cleared level 10.</div>
+          )}
+          {gameState.game_over && !gameState.game_won && (
             <div className="game-over">Game Over. The roguelike run ends here.</div>
           )}
         </div>
       </section>
 
       <section className="actions">
-        {Object.keys(MOVE_ICONS).map((move) => (
-          <button
-            key={move}
-            className={`move ${animatingMove === move ? "active" : ""}`}
-            onClick={() => handleMove(move)}
-            disabled={!gameState.awaiting_player || gameState.game_over}
-          >
-            <span className="move-icon">{MOVE_ICONS[move]}</span>
-            <span className="move-label">{move}</span>
-          </button>
-        ))}
+        <div className="inventory">
+          <h3>Your Items</h3>
+          <div className="inventory-grid">
+            {gameState.player_items.map((item) => (
+              <button
+                key={item.id}
+                className={`inventory-item ${animatingMove?.id === item.id ? "active" : ""}`}
+                onClick={() => handleMove(item)}
+                disabled={!gameState.awaiting_player || gameState.game_over}
+              >
+                <div className="item-name">{item.name}</div>
+                <div className="item-types">
+                  <span>{TYPE_ICONS[item.primary_type]}</span>
+                  <span>{TYPE_ICONS[item.secondary_type]}</span>
+                </div>
+                {!item.is_base && <div className="item-usage">Single use</div>}
+              </button>
+            ))}
+          </div>
+        </div>
         <button className="secondary" onClick={startGame}>
           Start New Run
         </button>
