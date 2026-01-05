@@ -25,9 +25,11 @@ class GameState:
     cpu_hp_max: int
     cpu_choices: List[Dict[str, str]]
     last_cpu_choice: Dict[str, str] | None
+    last_player_move: str | None
     last_result: str
     game_over: bool
     level_up: bool
+    awaiting_player: bool
 
 
 app = Flask(__name__)
@@ -80,9 +82,11 @@ def start_level(level: int, player_hp: int, player_hp_max: int, objects: List[Di
         cpu_hp_max=cpu_hp_max,
         cpu_choices=cpu_choices,
         last_cpu_choice=None,
+        last_player_move=None,
         last_result="",
         game_over=False,
         level_up=False,
+        awaiting_player=False,
     )
 
 
@@ -120,6 +124,28 @@ def start_game():
     return jsonify({"session_id": session_id, "state": asdict(state)})
 
 
+@app.post("/api/game/cpu-select")
+def cpu_select():
+    payload = request.get_json() or {}
+    session_id = payload.get("session_id")
+
+    if session_id not in _sessions:
+        return jsonify({"error": "Invalid session"}), 404
+
+    state = _sessions[session_id]
+    if state.game_over:
+        return jsonify({"state": asdict(state)})
+
+    if state.awaiting_player and state.last_cpu_choice:
+        return jsonify({"state": asdict(state)})
+
+    state.last_cpu_choice = random.choice(state.cpu_choices)
+    state.awaiting_player = True
+    state.last_result = ""
+    state.last_player_move = None
+    return jsonify({"state": asdict(state)})
+
+
 @app.post("/api/game/turn")
 def take_turn():
     payload = request.get_json() or {}
@@ -134,15 +160,17 @@ def take_turn():
     state = _sessions[session_id]
     if state.game_over:
         return jsonify({"state": asdict(state)})
+    if not state.awaiting_player or not state.last_cpu_choice:
+        return jsonify({"error": "CPU has not selected a move"}), 400
 
-    cpu_choice = random.choice(state.cpu_choices)
-    result = compare_moves(player_move, cpu_choice["type"])
+    result = compare_moves(player_move, state.last_cpu_choice["type"])
 
     apply_damage(state, result)
 
-    state.last_cpu_choice = cpu_choice
+    state.last_player_move = player_move
     state.last_result = result
     state.level_up = False
+    state.awaiting_player = False
 
     if state.player_hp <= 0:
         state.player_hp = max(state.player_hp, 0)
@@ -155,6 +183,7 @@ def take_turn():
         objects = load_objects()
         next_state = start_level(state.level, state.player_hp, state.player_hp_max, objects)
         next_state.last_cpu_choice = state.last_cpu_choice
+        next_state.last_player_move = state.last_player_move
         next_state.last_result = state.last_result
         next_state.level_up = True
         _sessions[session_id] = next_state

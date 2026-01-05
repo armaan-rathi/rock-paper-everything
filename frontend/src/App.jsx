@@ -38,7 +38,9 @@ export default function App() {
 
   const resultMessage = useMemo(() => {
     if (!gameState?.last_result) {
-      return "Make your move to begin.";
+      return gameState?.awaiting_player
+        ? "CPU locked in. Choose your response."
+        : "CPU is weighing its options...";
     }
     return RESULT_COPY[gameState.last_result];
   }, [gameState]);
@@ -61,6 +63,26 @@ export default function App() {
     }
   };
 
+  const selectCpuChoice = async () => {
+    if (!sessionId) {
+      return;
+    }
+    try {
+      const response = await fetch("/api/game/cpu-select", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ session_id: sessionId }),
+      });
+      const data = await response.json();
+      if (!response.ok) {
+        throw new Error(data.error || "Unable to select CPU move");
+      }
+      setGameState(data.state);
+    } catch (err) {
+      setError(err.message);
+    }
+  };
+
   const handleMove = async (move) => {
     if (!sessionId) {
       return;
@@ -80,13 +102,26 @@ export default function App() {
     } catch (err) {
       setError(err.message);
     } finally {
-      setTimeout(() => setAnimatingMove(null), 500);
+      setTimeout(() => setAnimatingMove(null), 600);
     }
   };
 
   useEffect(() => {
     startGame();
   }, []);
+
+  useEffect(() => {
+    if (!gameState || gameState.game_over) {
+      return;
+    }
+    if (!gameState.awaiting_player) {
+      const timer = setTimeout(() => {
+        selectCpuChoice();
+      }, gameState.level_up ? 1200 : 700);
+      return () => clearTimeout(timer);
+    }
+    return undefined;
+  }, [gameState?.awaiting_player, gameState?.level_up, gameState?.game_over]);
 
   if (loading) {
     return <div className="screen">Loading the arena...</div>;
@@ -107,6 +142,8 @@ export default function App() {
   if (!gameState) {
     return null;
   }
+
+  const leftIcon = animatingMove || gameState.last_player_move;
 
   return (
     <div className="app">
@@ -134,6 +171,7 @@ export default function App() {
       <section className="arena">
         <div className="cpu-panel">
           <h2>CPU Loadout</h2>
+          <p className="cpu-hint">Types are hidden. Read the names and guess the type.</p>
           <div className="cpu-choices">
             {gameState.cpu_choices.map((choice) => (
               <div
@@ -145,23 +183,24 @@ export default function App() {
                 }
               >
                 <span>{choice.name}</span>
-                <span className="tag">{choice.type}</span>
+                <span className="tag muted">Classified</span>
               </div>
             ))}
           </div>
           {gameState.last_cpu_choice && (
             <div className="cpu-play">
-              CPU played <strong>{gameState.last_cpu_choice.name}</strong>
+              CPU locked in <strong>{gameState.last_cpu_choice.name}</strong>
             </div>
           )}
         </div>
 
         <div className={`result-card ${gameState.last_result}`}>
+          {gameState.level_up && <div className="level-banner">LEVEL UP</div>}
           <p className="result-label">{resultMessage}</p>
           {gameState.last_result && (
             <div className="result-icons">
               <span className={`icon ${animatingMove ? "pulse" : ""}`}>
-                {MOVE_ICONS[animatingMove || "rock"]}
+                {leftIcon ? MOVE_ICONS[leftIcon] : "❔"}
               </span>
               <span className="vs">vs</span>
               <span className="icon">
@@ -170,9 +209,6 @@ export default function App() {
                   : "❔"}
               </span>
             </div>
-          )}
-          {gameState.level_up && (
-            <div className="level-up">Level up! New challenger approaches.</div>
           )}
           {gameState.game_over && (
             <div className="game-over">Game Over. The roguelike run ends here.</div>
@@ -186,7 +222,7 @@ export default function App() {
             key={move}
             className={`move ${animatingMove === move ? "active" : ""}`}
             onClick={() => handleMove(move)}
-            disabled={gameState.game_over}
+            disabled={!gameState.awaiting_player || gameState.game_over}
           >
             <span className="move-icon">{MOVE_ICONS[move]}</span>
             <span className="move-label">{move}</span>

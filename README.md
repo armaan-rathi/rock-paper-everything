@@ -14,7 +14,7 @@ pip install -r requirements.txt
 python app.py
 ```
 
-The backend serves the game API at `http://localhost:5000/api`.
+The backend serves the game API at `http://localhost:5001/api`.
 
 ### Frontend
 
